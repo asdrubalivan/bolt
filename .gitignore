@@ -9,6 +9,7 @@ extensions/*
 thumbs/
 vendor/
 phpunit.xml
+.boltversion
 
 # Unless you want to store vendor's "state" in your Git repo.
 composer.phar
