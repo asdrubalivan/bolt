@@ -24,9 +24,9 @@ class Check
     private $stability = 'stable';
 
     /**
-     * @var string
+     * @var array
      */
-    private $version_local = '';
+    private $version_local = null;
 
     /**
      * @var array
@@ -121,14 +121,14 @@ class Check
             }
 
             // Check if were on the same stable patch version
-            if ($this->stability == 'stable' && version_compare($this->version_local, $this->version_remote[$stability]['version'], '<')) {
+            if ($this->stability == 'stable' && version_compare($this->version_local['version'], $this->version_remote[$this->stability]['version'], '<')) {
                 return $this->update_required = true;
             }
 
             // Check if were on the same dev patch version
-            if ($this->stability == 'dev' && version_compare($this->version_local, $this->version_remote[$stability]['version'], '<=')) {
+            if ($this->stability == 'dev' && version_compare($this->version_local['version'], $this->version_remote[$this->stability]['version'], '<=')) {
                 // Check the 'name' version too
-                if ($this->stability == 'dev' && $this->version_remote[$stability]['version'] > $this->app['bolt_name']) {
+                if ($this->stability == 'dev' && $this->version_remote[$this->stability]['version'] > $this->version_local['name']) {
                     return $this->update_required = true;
                 }
             }
@@ -190,7 +190,7 @@ class Check
 
         if ($fs->exists($file) && is_readable($file)) {
             try {
-                $this->version_local = trim(file_get_contents($file));
+                $this->version_local = json_decode(file_get_contents($file), true);
 
                 return true;
             } catch (IOExceptionInterface $e) {
