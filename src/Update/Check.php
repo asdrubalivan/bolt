@@ -153,28 +153,41 @@ class Check
      */
     private function getAvailableVersions()
     {
-        $query = array(
-            'bolt_ver'  => $this->app['bolt_version'],
-            'bolt_name' => $this->app['bolt_name'],
-            'php'       => phpversion(),
-            'www'       => $_SERVER['SERVER_SOFTWARE']
-        );
 
-        try {
-            $response = $this->guzzleclient->get('/' . static::VERFILE, null, array('query' => $query))->send();
+        $this->version_remote = $this->app['cache']->fetch('boltversion');
 
-            if ($response->getStatusCode() == '200') {
-                $this->version_remote = $response->json();
-                return true;
-            } else {
-                $this->app['logger.system']->addError('Error checking Bolt update site. Return code: ' . $response->getStatusCode(), array('event' => 'updater'));
+        if ($this->version_remote === false) {
+            //
+            $query = array(
+                'bolt_ver'  => $this->app['bolt_version'],
+                'bolt_name' => $this->app['bolt_name'],
+                'php'       => phpversion(),
+                'www'       => $_SERVER['SERVER_SOFTWARE']
+            );
+
+            try {
+                $response = $this->guzzleclient->get('/' . static::VERFILE, null, array('query' => $query))->send();
+
+                if ($response->getStatusCode() == '200') {
+                    $this->version_remote = $response->json();
+
+                    // Cache it for 24 hours
+                    $this->app['cache']->save('boltversion', $this->version_remote, 86400);
+
+                    // Log it!
+                    $this->app['logger.system']->addInfo('Downloaded new version update data from Bolt HQ', array('event' => 'updater'));
+
+                    return true;
+                } else {
+                    $this->app['logger.system']->addError('Error checking Bolt update site. Return code: ' . $response->getStatusCode(), array('event' => 'updater'));
+
+                    return false;
+                }
+            } catch (RequestException $e) {
+                $this->app['logger.system']->addError('Error checking Bolt update site. Error message: ' . $e->getMessage(0), array('event' => 'updater'));
 
                 return false;
             }
-        } catch (RequestException $e) {
-            $this->app['logger.system']->addError('Error checking Bolt update site. Error message: ' . $e->getMessage(0), array('event' => 'updater'));
-
-            return false;
         }
     }
 
