@@ -3,10 +3,11 @@
 namespace Bolt\Update;
 
 use Bolt\Application;
-use Guzzle\Http\Client as GuzzleClient;
 use Guzzle\Http\Exception\RequestException;
+use Guzzle\Service\Client;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class for Bolt core update checks
@@ -15,9 +16,6 @@ use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
  */
 class Check
 {
-    const SITE = 'https://bolt.cm';
-    const VERFILE = 'version.json';
-
     /**
      * @var string
      */
@@ -39,12 +37,16 @@ class Check
     private $update_required = null;
 
     /**
-     * @param Application $app
+     * @var \Guzzle\Service\Client
      */
-    public function __construct(Application $app)
+    protected $client;
+
+    /**
+     * @param \Guzzle\Service\Client $client
+     */
+    public function __construct(Client $client)
     {
-        $this->app = $app;
-        $this->guzzleclient = new GuzzleClient(static::SITE);
+        $this->client = $client;
     }
 
     /**
@@ -103,8 +105,11 @@ class Check
     /**
      * Check Bolt HQ to see if we have an available update!
      *
+     * @param  boolean      $skipcache
+     * @param  string       $versionJson
+     * @return boolean|NULL
      */
-    private function checkUpdateRequired()
+    private function checkUpdateRequired($skipcache = false, $versionJson = 'https://bolt.cm/distribution/version.json')
     {
         if ($this->getAvailableVersions()) {
             // Find our local version (pre-updates)
@@ -135,7 +140,7 @@ class Check
 
             return $this->update_required = false;
         } else {
-            $this->app['logger.system']->addError('Error checking Bolt update site', array('event' => 'updater'));
+            $this->app['logger.system']->error('Error checking Bolt update site', array('event' => 'updater'));
 
             return $this->update_required = null;
         }
@@ -144,14 +149,11 @@ class Check
     /**
      * Check the main Bolt site for our desired version
      *
-     * @TODO this function, the one from newsfeed and the Composer\CommandRunner
-     * on need their own central place for this kind of thing
-     *
-     * /me watches Bopp grumbling about the Insight score ;-)
-     *
+     * @param  boolean $skipcache
+     * @param  string  $versionJson
      * @return boolean
      */
-    private function getAvailableVersions()
+    private function getAvailableVersions($skipcache, $versionJson)
     {
 
         $this->version_remote = $this->app['cache']->fetch('boltversion');
@@ -166,25 +168,25 @@ class Check
             );
 
             try {
-                $response = $this->guzzleclient->get('/' . static::VERFILE, null, array('query' => $query))->send();
+                $response = $this->client->get($versionJson, null, array('query' => $query, 'timeout' => 10))->send();
 
-                if ($response->getStatusCode() == '200') {
+                if ($response->getStatusCode() == Response::HTTP_OK) {
                     $this->version_remote = $response->json();
 
                     // Cache it for 24 hours
                     $this->app['cache']->save('boltversion', $this->version_remote, 86400);
 
                     // Log it!
-                    $this->app['logger.system']->addInfo('Downloaded new version update data from Bolt HQ', array('event' => 'updater'));
+                    $this->app['logger.system']->info('Downloaded new version update data from Bolt HQ', array('event' => 'updater'));
 
                     return true;
                 } else {
-                    $this->app['logger.system']->addError('Error checking Bolt update site. Return code: ' . $response->getStatusCode(), array('event' => 'updater'));
+                    $this->app['logger.system']->error('Error checking Bolt update site. Return code: ' . $response->getStatusCode(), array('event' => 'updater'));
 
                     return false;
                 }
             } catch (RequestException $e) {
-                $this->app['logger.system']->addError('Error checking Bolt update site. Error message: ' . $e->getMessage(0), array('event' => 'updater'));
+                $this->app['logger.system']->error('Error checking Bolt update site. Error message: ' . $e->getMessage(0), array('event' => 'updater'));
 
                 return false;
             }
@@ -207,7 +209,7 @@ class Check
 
                 return true;
             } catch (IOExceptionInterface $e) {
-                $this->app['logger.system']->addError("Error checking Bolt version file: $file", array('event' => 'updater'));
+                $this->app['logger.system']->error("Error checking Bolt version file: $file", array('event' => 'updater'));
 
                 return null;
             }
