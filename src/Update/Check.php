@@ -111,7 +111,7 @@ class Check
      */
     private function checkUpdateRequired($skipcache = false, $versionJson = 'https://bolt.cm/distribution/version.json')
     {
-        if ($this->getAvailableVersions()) {
+        if ($this->getAvailableVersions($skipcache, $versionJson)) {
             // Find our local version (pre-updates)
             $vercheck = $this->getLocalVersion();
 
@@ -158,7 +158,7 @@ class Check
 
         $this->version_remote = $this->app['cache']->fetch('boltversion');
 
-        if ($this->version_remote === false) {
+        if ($this->version_remote === false || $skipcache === true) {
             //
             $query = array(
                 'bolt_ver'  => $this->app['bolt_version'],
