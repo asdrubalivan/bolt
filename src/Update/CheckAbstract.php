@@ -14,27 +14,27 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @author Gawain Lynch <gawain.lynch@gmail.com>
  */
-class Check
+abstract class CheckAbstract
 {
     /**
      * @var string
      */
-    private $stability = 'stable';
+    protected $stability = 'stable';
 
     /**
      * @var array
      */
-    private $version_local = null;
+    protected $version_local = null;
 
     /**
      * @var array
      */
-    private $version_remote = null;
+    protected $version_remote = null;
 
     /**
      * @var boolean
      */
-    private $update_required = null;
+    protected $update_required = null;
 
     /**
      * @var \Guzzle\Service\Client
@@ -103,7 +103,7 @@ class Check
     }
 
     /**
-     * Check Bolt HQ to see if we have an available update!
+     * CheckAbstract Bolt HQ to see if we have an available update!
      *
      * @param  boolean      $skipcache
      * @param  string       $versionJson
@@ -125,14 +125,14 @@ class Check
                 return $this->update_required = true;
             }
 
-            // Check if were on the same stable patch version
+            // CheckAbstract if were on the same stable patch version
             if ($this->stability == 'stable' && version_compare($this->version_local['version'], $this->version_remote[$this->stability]['version'], '<')) {
                 return $this->update_required = true;
             }
 
-            // Check if were on the same dev patch version
+            // CheckAbstract if were on the same dev patch version
             if ($this->stability == 'dev' && version_compare($this->version_local['version'], $this->version_remote[$this->stability]['version'], '<=')) {
-                // Check the 'name' version too
+                // CheckAbstract the 'name' version too
                 if ($this->stability == 'dev' && $this->version_remote[$this->stability]['version'] > $this->version_local['name']) {
                     return $this->update_required = true;
                 }
@@ -147,7 +147,7 @@ class Check
     }
 
     /**
-     * Check the main Bolt site for our desired version
+     * CheckAbstract the main Bolt site for our desired version
      *
      * @param  boolean $skipcache
      * @param  string  $versionJson
