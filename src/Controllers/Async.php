@@ -140,12 +140,7 @@ class Async implements ControllerProviderInterface
             $curlOptions['CURLOPT_CONNECTTIMEOUT'] = 5;
 
             try {
-                if ($app['deprecated.php']) {
-                    $fetchedNewsData = $app['guzzle.client']->get($url, null, $curlOptions)->send()->getBody(true);
-                } else {
-                    $fetchedNewsData = $app['guzzle.client']->get($url, array(), $curlOptions)->getBody(true);
-                }
-
+                $fetchedNewsData = $app['guzzle.client']->get($url, array(), $curlOptions)->getBody(true);
                 $fetchedNewsItems = json_decode($fetchedNewsData);
 
                 if ($fetchedNewsItems) {
