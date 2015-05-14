@@ -319,20 +319,12 @@ class BackendTest extends BoltUnitTest
             'Needs work.'
         );
 
-        if ($app['deprecated.php']) {
-            $store->expects($this->any())
-                ->method('preFill')
-                ->will($this->returnCallback(function () {
-                    throw new \Guzzle\Http\Exception\RequestException();
-            }));
-        } else {
-            $request = new \GuzzleHttp\Message\Request('GET', '');
-            $store->expects($this->any())
-                ->method('preFill')
-                ->will($this->returnCallback(function () use ($request) {
-                    throw new \GuzzleHttp\Exception\RequestException('', $request);
-            }));
-        }
+        $request = new \GuzzleHttp\Message\Request('GET', '');
+        $store->expects($this->any())
+            ->method('preFill')
+            ->will($this->returnCallback(function () use ($request) {
+                throw new \GuzzleHttp\Exception\RequestException('', $request);
+        }));
 
         $app['storage'] = $store;
 
